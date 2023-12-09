@@ -1,49 +1,52 @@
-`process abstraction` is the `base mechanism` to allow concurrent execution (In the `single processor`)
+### Process Abstraction Overview
 
-Modern Machine host multicore = mix of true parallel and OS managed
+In computing, **process abstraction** serves as the fundamental mechanism to facilitate concurrent execution, particularly within the confines of a **single processor** environment.
 
-Running program has a set of information that change over time `->` Snapshot of associated informations must be saved by OS (`WHEN ?` when the program `loses` processor ownership)
+### Concurrent Execution in Modern Machines
 
-Process Context:
-	Program + other memory contents manage by program (program stack and global variables)
-	Current Value of the processor registers
-	The OS resources currently used by process
+Modern machines typically boast multi-core processors, representing an intricate blend of genuine parallel execution and orchestrated management by the operating system (OS).
 
-Process context `!=` Interrupt context
+### The Lifecycle of a Running Program
+
+A running program is dynamically characterized by its state of information, which the OS is tasked to preserve through timely snapshots. These snapshots are essential, especially when the program must relinquish control of the processor.
+
+#### What is Process Context?
+
+The concept of process context extends beyond merely the program itself, encompassing:
+
+- All memory content managed by the program, such as the program stack and global variables.
+- The current state of the processor's registers.
+- Any OS resources actively utilized by the process.
+
+Crucially, one must understand that **process context is distinct from interrupt context**.
 
 ---
-### How to save memory contents
 
-Process Control Block (PCB): Registers and OS resources are saved in data structure owned by the OS called PCB
+### Process Control Block (PCB)
 
-- We cannot copy the content of the memory used by process.
-- It's `NECESSARY` that physical memory location are independent from memory location as seen by the process.
-- Page Table Entries are saved in PCB
+The **PCB** plays a pivotal role by housing the saved state of registers and OS resources within a specific data structure under OS jurisdiction.
+
+- Direct copying of a process's memory content is not feasible.
+- It is **IMPERATIVE** for physical memory locations to remain insulated from the process's perceived memory locations.
+- The Page Table Entries stored in the PCB encompass several critical components:
 	- Program Code
-	- Program Stack for local Variables
+	- Program Stack for local variables
 	- Static memory for static and global variables
-	- Dynamically allocated memory by heap
+	- Dynamically allocated memory managed by the heap.
 
-Speed of the process can be effected by `amount of information that copied` + `how significant is the process` using a large memory
+The process's speed can be impacted by both the **volume of information transferred** and the **extent to which the process is engaged** with substantial memory utilization.
 
-TLB (Translation Look-aside Buffer) must `flushed` upon context switch
+It is also worth noting that the **TLB (Translation Look-aside Buffer)** necessitates purging with each context switch.
 
 ---
-### Memory Protection
 
-- Virtual memory usage `ensures` protection against wrong memory allocation
-- Without Virtual memory, `user programs` may` harm` `other process` or `OS data structures`
-- Using Virtual Memory, we give `memory area (PTE)`📝 to the process `to do whatever` it wants, and any access within this area is legal.
+## Ensuring Memory Protection through Virtualization
 
-> `📝` When a process requests access to data in its memory, it is the responsibility of the operating system to map the virtual address provided by the process to the physical address of the actual memory where that data is stored. The page table is where the operating system stores its mappings of virtual addresses to physical addresses, with each mapping also known as a _page table entry_ (PTE)
+- Utilization of virtual memory is paramount in safeguarding against incorrect memory allocations.
+- In the absence of virtual memory, user programs could potentially compromise the integrity of other processes or the OS's data structures.
+- The virtue of virtual memory allows processes to be assigned their own memory area (_PTE_)📝, enabling unfettered operation within this designated space, where all access is deemed legitimate.
 
-<div class="warning" style='background-color:#E9D8FD; color: #69337A; border-left: solid #805AD5 4px; border-radius: 4px; padding:0.7em;'>
-<span>
-<p style='margin-top:1em; text-align:center'>
-<b>PTE</b></p>
-<p style='margin-left:1em;'>
-When a process requests access to data in its memory, it is the responsibility of the operating system to map the virtual address provided by the process to the physical address of the actual memory where that data is stored. The page table is where the operating system stores its mappings of virtual addresses to physical addresses, with each mapping also known as a _page table entry_ (PTE)<br><br>
-</p>
-<p style='margin-bottom:1em; margin-right:1em; text-align:right; font-family:Georgia'> <b>- Wikipedia</b> <i>https://en.wikipedia.org/wiki/Page_table</i>
-</p></span>
-</div>
+> 📝 **Note on Memory Access:** Whenever a process seeks to retrieve data from its memory, the OS is responsible for translating the virtual address given by the process into the physical address where the actual data resides. This mapping takes place within the page table, with each correlation termed a _page table entry_ (PTE).
+
+---
+### The Process States
