@@ -1,0 +1,32 @@
+# Compiled object files
+*.o
+*.ko
+*.obj
+*.elf
+
+# Executables
+*.exe
+*.out
+*.app
+
+# Dependency files
+*.d
+
+# User-specific files
+.idea/
+
+# CMake build directory
+cmake-build-debug/
+cmake-build-release/
+
+# CLion workspace files
+*.iml
+
+# Compiled binaries
+bin/
+
+# macOS
+.DS_Store
+
+# Windows
+Thumbs.db
