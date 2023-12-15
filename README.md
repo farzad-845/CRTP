@@ -21,7 +21,7 @@ The overall structure of the repository is as follows:
 
 ---
 
-## Ontology Diagram
+## Diagram
 
 ## System Hardware & Software
 

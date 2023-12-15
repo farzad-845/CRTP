@@ -4,6 +4,8 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
+#include <time.h>
+#include <libpq-fe.h>
 
 #define MAX_MESSAGE_LENGTH 17
 #define MAX_QUEUE_LENGTH 10
@@ -24,7 +26,7 @@ typedef struct {
 } Parameters;
 
 // The message queue
-Message* messageQueue;
+Message *messageQueue;
 int queue_length = 0;
 int next_message_id = 0;
 
@@ -33,11 +35,68 @@ pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 sem_t items;
 sem_t spaces;
 
-void printUsage(char *programName) {
-    fprintf(stderr, "Usage: %s [--message-delay <value>] [--consumption-delay <value>] [--threshold <value>] [--max-queue-length <value>]\n", programName);
+
+// Global variable for the database connection
+PGconn *global_conn = NULL;
+
+// Function to initialize connection to PostgreSQL
+void initializePostgresConnection(const char *host, const char *dbname, const char *user, const char *password) {
+    // Create a connection to the database
+    global_conn = PQsetdbLogin(host, "5432", NULL, NULL, dbname, user, password);
+
+    // Check for connection success
+    if (PQstatus(global_conn) != CONNECTION_OK) {
+        fprintf(stderr, "Connection to database failed: %s", PQerrorMessage(global_conn));
+        PQfinish(global_conn);
+        exit(EXIT_FAILURE);
+    }
 }
 
-int parseParameters(int argc, char* argv[], Parameters *params) {
+void closePostgresConnection() {
+    if (global_conn != NULL) {
+        PQfinish(global_conn);
+        global_conn = NULL;
+    }
+}
+
+// Modified function to insert timestamped data using global connection
+void insertDataToPostgres(const char *table, double value) {
+    // Ensure global connection is initialized
+    if (!global_conn) {
+        fprintf(stderr, "Global database connection is not initialized.\n");
+        exit(EXIT_FAILURE);
+    }
+
+    // Get the current timestamp
+    time_t current_time;
+    time(&current_time);
+
+    // Construct the SQL query
+    char query[200];
+    snprintf(query, sizeof(query), "INSERT INTO %s (timestamp, metric_value) VALUES (to_timestamp(%ld), %f)", table,
+             current_time, value);
+
+    // Execute the query
+    PGresult *res = PQexec(global_conn, query);
+
+    // Check for query execution success
+    if (PQresultStatus(res) != PGRES_COMMAND_OK) {
+        fprintf(stderr, "Query execution failed: %s", PQerrorMessage(global_conn));
+        PQclear(res);
+        exit(EXIT_FAILURE);
+    }
+
+    // Clean up
+    PQclear(res);
+}
+
+void printUsage(char *programName) {
+    fprintf(stderr,
+            "Usage: %s [--message-delay <value>] [--consumption-delay <value>] [--threshold <value>] [--max-queue-length <value>]\n",
+            programName);
+}
+
+int parseParameters(int argc, char *argv[], Parameters *params) {
     params->message_delay = -1;
     params->consumption_delay = CONSUMPTION_RATE;
     params->threshold = -1;
@@ -77,21 +136,21 @@ char random_char(int index) {
 
 // Function to produce a message
 Message produce_random_message(int id) {
-    Message msg = { .id = id };
+    Message msg = {.id = id};
     srand(time(NULL));
     int i, index;
-    for (i = 0; i < MAX_MESSAGE_LENGTH-1; i++) {
+    for (i = 0; i < MAX_MESSAGE_LENGTH - 1; i++) {
         index = rand() % 62;
         msg.data[i] = random_char(index);
     }
-    msg.data[MAX_MESSAGE_LENGTH-1] = '\0';
+    msg.data[MAX_MESSAGE_LENGTH - 1] = '\0';
 
     return msg;
 }
 
 // Producer consumes `spaces`, produces an item, then posts to `items`.
-void* producer(void* params) {
-    Parameters* p = (Parameters*)params;
+void *producer(void *params) {
+    Parameters *p = (Parameters *) params;
 
     while (1) {
         sem_wait(&spaces); // Wait for space
@@ -101,6 +160,7 @@ void* producer(void* params) {
         Message new_msg = produce_random_message(next_message_id++);
         messageQueue[queue_length++] = new_msg;
         printf("Produced: %d\n", new_msg.id);
+        insertDataToPostgres("metrics", queue_length);
 
         pthread_mutex_unlock(&mutex);
         sem_post(&items); // Signal that an item is available
@@ -125,8 +185,8 @@ void printMessageQueueState() {
 
 
 // Consumer waits for `items`, consumes an item, then posts to `spaces`.
-void* consumer(void* params) {
-    Parameters* p = (Parameters*)params;
+void *consumer(void *params) {
+    Parameters *p = (Parameters *) params;
 
     while (1) {
         sem_wait(&items); // Wait for an item
@@ -140,6 +200,7 @@ void* consumer(void* params) {
         queue_length--;
 
         printf("Consumed: %d %s\n", msg_to_consume.id, msg_to_consume.data);
+        insertDataToPostgres("metrics", queue_length);
         printMessageQueueState();
 
         pthread_mutex_unlock(&mutex);
@@ -152,17 +213,19 @@ void* consumer(void* params) {
 }
 
 // Controller adjusts the production rate
-void* controller(void* params) {
-    Parameters* p = (Parameters*)params;
+void *controller(void *params) {
+    Parameters *p = (Parameters *) params;
 
     while (1) {
         pthread_mutex_lock(&mutex);
         // Check if messages are below threshold to increase production rate
         if (queue_length < p->threshold) {
-            p->message_delay = p->message_delay > 1 ? p->message_delay - 1 : (0.9) * p->message_delay ; // Speed up the producer
+            p->message_delay =
+                    p->message_delay > 1 ? p->message_delay - 1 : (0.9) * p->message_delay; // Speed up the producer
         } else if (queue_length > p->threshold) { // Decrease production rate
             p->message_delay += 1;
         }
+        insertDataToPostgres("delay_metrics", p->message_delay);
         printf("Controller: Message delay adjusted to %.2f seconds\n", p->message_delay);
         pthread_mutex_unlock(&mutex);
         sleep(1); // Controller checks every second
@@ -170,7 +233,7 @@ void* controller(void* params) {
     return NULL;
 }
 
-int main(int argc, char* argv[]) {
+int main(int argc, char *argv[]) {
     Parameters params;
 
     int result = parseParameters(argc, argv, &params);
@@ -192,6 +255,16 @@ int main(int argc, char* argv[]) {
     printf("Threshold: %d\n", params.threshold);
     printf("Max Queue Length: %d\n", params.max_queue_length);
     printf("============================: %d\n\n", params.max_queue_length);
+
+    const char *host = "localhost";
+    const char *dbname = "crtp_metrics";
+    const char *user = "postgres";
+    const char *password = "crtp";
+    const char *table = "metrics";
+
+    // Initialize global database connection
+    initializePostgresConnection(host, dbname, user, password);
+
 
     // Initialize the message queue
     messageQueue = malloc(params.max_queue_length * sizeof(Message));
