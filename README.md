@@ -22,7 +22,8 @@ The overall structure of the repository is as follows:
 ---
 
 ## Diagram
-[diagram](./diagram.png)
+<img src="diagram.png" alt="RealTime Message Queue & Delay Analysis"/>
+
 ## System Hardware & Software
 
 ---
