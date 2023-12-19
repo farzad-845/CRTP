@@ -22,7 +22,7 @@ The overall structure of the repository is as follows:
 ---
 
 ## Diagram
-
+[diagram](./diagram.png)
 ## System Hardware & Software
 
 ---
