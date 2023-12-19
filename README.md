@@ -1,7 +1,3 @@
-## Producer-Consumer Dynamic Rate Adjustment System
-### University of Padova - A.A. 2023-24
-
-
 <a name="readme-top"></a>
 
 [![Contributors][contributors-shield]][contributors-url]
@@ -11,11 +7,15 @@
 [![MIT License][license-shield]][license-url]
 [![LinkedIn][linkedin-shield]][linkedin-url]
 
+## Producer-Consumer Dynamic Rate Adjustment System
+### University of Padova - A.A. 2023-24
+
+
 <!-- PROJECT LOGO -->
 <br />
 <div align="center">
-  <a href="https://github.com/farzad-845/UNIPD_GIS_MASTER_PLAN">
-    <img src="report/res/web/both-map-data.png" alt="Logo" width="465" height="569">
+  <a href="https://github.com/farzad-845/CRTP">
+    <img src="assets/logo.png" alt="Logo" height="300">
   </a>
 </div>
 
@@ -55,7 +55,7 @@ The overall structure of the repository is as follows:
 ---
 
 ## Diagram
-<img src="diagram.png" alt="RealTime Message Queue & Delay Analysis"/>
+<img src="assets/diagram.png" alt="RealTime Message Queue & Delay Analysis"/>
 
 ---
 
