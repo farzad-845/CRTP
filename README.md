@@ -1,6 +1,24 @@
 ## Producer-Consumer Dynamic Rate Adjustment System
 ### University of Padova - A.A. 2023-24
 
+
+<a name="readme-top"></a>
+
+[![Contributors][contributors-shield]][contributors-url]
+[![Forks][forks-shield]][forks-url]
+[![Stargazers][stars-shield]][stars-url]
+[![Issues][issues-shield]][issues-url]
+[![MIT License][license-shield]][license-url]
+[![LinkedIn][linkedin-shield]][linkedin-url]
+
+<!-- PROJECT LOGO -->
+<br />
+<div align="center">
+  <a href="https://github.com/farzad-845/UNIPD_GIS_MASTER_PLAN">
+    <img src="report/res/web/both-map-data.png" alt="Logo" width="465" height="569">
+  </a>
+</div>
+
 ---
 
 ## Objective
@@ -69,19 +87,15 @@ The output of the project will be a functional producer-consumer system where:
 
 All the contents of this repository are shared using the [GNU GENERAL PUBLIC LICENSE - VER. 3](https://www.gnu.org/licenses/gpl-3.0.html)
 
-
-
-Write README.md for this project, contains the following sections:
-1- Project description: a brief description of the project
-2- Objectives: the objectives of the project
-3- Requirement analysis
-4- System hardware and software
-6- Output of the project
-
-
-
-Producer-(single) consumer program with dynamic message rate adjustment. The consumer shall consume messages at a given rate, that is, with a given delay simulating the consumed message usage. An actor (task or process) separate from producer and consumer shall periodically check the message queue length and if the length is below a given threshold, it will increase the production rate. Otherwise (i.e. the message length is above the given threshold), it will decrease the production rate.
-
-
-
-
+[contributors-shield]: https://img.shields.io/github/contributors/farzad-845/CRTP.svg?style=for-the-badge
+[contributors-url]: https://github.com/farzad-845/CRTP/graphs/contributors
+[forks-shield]: https://img.shields.io/github/forks/farzad-845/CRTP.svg?style=for-the-badge
+[forks-url]: https://github.com/farzad-845/CRTP/network/members
+[stars-shield]: https://img.shields.io/github/stars/farzad-845/CRTP.svg?style=for-the-badge
+[stars-url]: https://github.com/farzad-845/CRTP/stargazers
+[issues-shield]: https://img.shields.io/github/issues/farzad-845/CRTP.svg?style=for-the-badge
+[issues-url]: https://github.com/farzad-845/CRTP/issues
+[license-shield]: https://img.shields.io/github/license/farzad-845/CRTP.svg?style=for-the-badge
+[license-url]: https://github.com/farzad-845/CRTP/blob/master/LICENSE.txt
+[linkedin-shield]: https://img.shields.io/badge/-LinkedIn-black.svg?style=for-the-badge&logo=linkedin&colorB=555
+[linkedin-url]: https://linkedin.com/in/farzad-shami
