@@ -5,11 +5,30 @@
 #include <unistd.h>
 #include <string.h>
 #include <time.h>
-#include <libpq-fe.h>
+#include <hiredis/hiredis.h>
 
 #define MAX_MESSAGE_LENGTH 17
 #define MAX_QUEUE_LENGTH 10
 #define CONSUMPTION_RATE 2
+
+
+// Declare the global redisContext
+redisContext *context = NULL;
+
+// Function to establish a connection to Redis
+void connectToRedis(const char *host, int port) {
+    context = redisConnect(host, port);
+    if (context == NULL || context->err) {
+        if (context) {
+            fprintf(stderr, "Error: %s\n", context->errstr);
+            //redisFree(context);
+        } else {
+            fprintf(stderr, "Unable to allocate redis context\n");
+        }
+        exit(EXIT_FAILURE);
+    }
+    printf("Connected to Redis server\n");
+}
 
 // Struct for a message
 typedef struct {
@@ -35,60 +54,21 @@ pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 sem_t items;
 sem_t spaces;
 
-
-// Global variable for the database connection
-PGconn *global_conn = NULL;
-
-// Function to initialize connection to PostgreSQL
-void initializePostgresConnection(const char *host, const char *dbname, const char *user, const char *password) {
-    // Create a connection to the database
-    global_conn = PQsetdbLogin(host, "5432", NULL, NULL, dbname, user, password);
-
-    // Check for connection success
-    if (PQstatus(global_conn) != CONNECTION_OK) {
-        fprintf(stderr, "Connection to database failed: %s", PQerrorMessage(global_conn));
-        PQfinish(global_conn);
-        exit(EXIT_FAILURE);
-    }
-}
-
-void closePostgresConnection() {
-    if (global_conn != NULL) {
-        PQfinish(global_conn);
-        global_conn = NULL;
-    }
-}
-
 // Modified function to insert timestamped data using global connection
-void insertDataToPostgres(const char *table, double value) {
-    // Ensure global connection is initialized
-    if (!global_conn) {
-        fprintf(stderr, "Global database connection is not initialized.\n");
-        exit(EXIT_FAILURE);
+void insertDataToRedis(const char *key, double value) {
+    if (context == NULL) {
+        fprintf(stderr, "Not connected to Redis\n");
+        return;
     }
-
-    // Get the current timestamp
-    time_t current_time;
-    time(&current_time);
-
-    // Construct the SQL query
-    char query[200];
-    snprintf(query, sizeof(query), "INSERT INTO %s (timestamp, metric_value) VALUES (to_timestamp(%ld), %f)", table,
-             current_time, value);
-
-    // Execute the query
-    PGresult *res = PQexec(global_conn, query);
-
-    // Check for query execution success
-    if (PQresultStatus(res) != PGRES_COMMAND_OK) {
-        fprintf(stderr, "Query execution failed: %s", PQerrorMessage(global_conn));
-        PQclear(res);
-        exit(EXIT_FAILURE);
+    redisReply *reply = redisCommand(context, "TS.ADD %s * %f", key, value);
+    if (reply == NULL) {
+        fprintf(stderr, "Error executing TS.ADD command\n");
+    } else {
+        // printf("Data saved to Redis: %lld\n", reply->integer);
+        freeReplyObject(reply);
     }
-
-    // Clean up
-    PQclear(res);
 }
+
 
 void printUsage(char *programName) {
     fprintf(stderr,
@@ -160,7 +140,7 @@ void *producer(void *params) {
         Message new_msg = produce_random_message(next_message_id++);
         messageQueue[queue_length++] = new_msg;
         printf("Produced: %d\n", new_msg.id);
-        insertDataToPostgres("metrics", queue_length);
+        insertDataToRedis("metrics", queue_length);
 
         pthread_mutex_unlock(&mutex);
         sem_post(&items); // Signal that an item is available
@@ -200,7 +180,7 @@ void *consumer(void *params) {
         queue_length--;
 
         printf("Consumed: %d %s\n", msg_to_consume.id, msg_to_consume.data);
-        insertDataToPostgres("metrics", queue_length);
+        insertDataToRedis("metrics", queue_length);
         printMessageQueueState();
 
         pthread_mutex_unlock(&mutex);
@@ -220,12 +200,12 @@ void *controller(void *params) {
         pthread_mutex_lock(&mutex);
         // Check if messages are below threshold to increase production rate
         if (queue_length < p->threshold) {
-            p->message_delay =
-                    p->message_delay > 1 ? p->message_delay - 1 : (0.9) * p->message_delay; // Speed up the producer
+            p->message_delay = (0.7) * p->message_delay; // Speed up the producer | Approach 1
+            // p->message_delay = p->message_delay > 1 ? p->message_delay - 1 : (0.9) * p->message_delay; // Speed up the producer | Approach 2
         } else if (queue_length > p->threshold) { // Decrease production rate
             p->message_delay += 1;
         }
-        insertDataToPostgres("delay_metrics", p->message_delay);
+        insertDataToRedis("delay_metrics", p->message_delay);
         printf("Controller: Message delay adjusted to %.2f seconds\n", p->message_delay);
         pthread_mutex_unlock(&mutex);
         sleep(1); // Controller checks every second
@@ -256,14 +236,11 @@ int main(int argc, char *argv[]) {
     printf("Max Queue Length: %d\n", params.max_queue_length);
     printf("============================: %d\n\n", params.max_queue_length);
 
-    const char *host = "localhost";
-    const char *dbname = "crtp_metrics";
-    const char *user = "postgres";
-    const char *password = "crtp";
-    const char *table = "metrics";
+    const char *redis_host = "localhost";
+    const int redis_port = 6379;
 
-    // Initialize global database connection
-    initializePostgresConnection(host, dbname, user, password);
+    // Connect to Redis
+    connectToRedis(redis_host, redis_port);
 
 
     // Initialize the message queue
