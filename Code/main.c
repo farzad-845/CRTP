@@ -142,8 +142,8 @@ void *producer(void *params) {
         printf("Produced: %d\n", new_msg.id);
         insertDataToRedis("metrics", queue_length);
 
-        pthread_mutex_unlock(&mutex);
         sem_post(&items); // Signal that an item is available
+        pthread_mutex_unlock(&mutex);
 
         // Sleep according to the current production delay
         usleep(p->message_delay * 1000000);
@@ -151,16 +151,17 @@ void *producer(void *params) {
     return NULL;
 }
 
-void printMessageQueueState() {
-    printf("Message Queue State: ");
-    for (int i = 0; i < MAX_QUEUE_LENGTH; i++) {
+void printMessageQueueState(int max_queue_length) {
+    printf("Message Queue State:\n");
+    printf("Front -> ");
+    for (int i = 0; i < max_queue_length; i++) {
         if (i < queue_length) {
-            printf("%d ", messageQueue[i].id);
+            printf("■ "); // Symbol for a message
         } else {
-            printf("- ");
+            printf("- "); // Symbol for an empty space
         }
     }
-    printf("\n");
+    printf(" <- Rear\n");
 }
 
 
@@ -181,10 +182,10 @@ void *consumer(void *params) {
 
         printf("Consumed: %d %s\n", msg_to_consume.id, msg_to_consume.data);
         insertDataToRedis("metrics", queue_length);
-        printMessageQueueState();
+        printMessageQueueState(p->max_queue_length);
 
-        pthread_mutex_unlock(&mutex);
         sem_post(&spaces); // Signal that there's space
+        pthread_mutex_unlock(&mutex);
 
         // Sleep to simulate consumption delay
         sleep(p->consumption_delay);

@@ -30,3 +30,5 @@ bin/
 
 # Windows
 Thumbs.db
+
+slides/*
