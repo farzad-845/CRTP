@@ -67,6 +67,20 @@ The overall structure of the repository is as follows:
     - An operating system that supports multitasking (e.g., Linux, Windows, macOS).
     - A programming environment that supports concurrency (e.g., Python with asyncio, Java with ExecutorService).
     - Necessary libraries for queue management and threading/multiprocessing.
+    - Redis server for analyzing the queue length and production rate.
+---
+##  Building the Project
+For running the project you can make the application using the following command:
+
+```bash
+gcc main.c -Wall -Werror -o crtp -lhiredis
+```
+or simply use the makefile:
+
+```bash
+make all
+```
+---
 
 ## Output of the Project
 
