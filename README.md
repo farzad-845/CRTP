@@ -54,11 +54,6 @@ The overall structure of the repository is as follows:
 
 ---
 
-## Diagram
-<img src="assets/diagram.png" alt="RealTime Message Queue & Delay Analysis"/>
-
----
-
 ## System Requirements
 - **Hardware Requirements:**
     - A computing environment capable of running concurrent processes or threads.
@@ -88,6 +83,10 @@ The output of the project will be a functional producer-consumer system where:
 - The producer's rate of message generation is adjusted dynamically by the monitor actor based on the queue’s length.
 - The consumer consistently processes messages at a pre-set delay.
 - The system maintains an optimal queue length, ensuring that the consumer operates efficiently without being overburdened, and the producer does not remain idle for too long or overwhelm the syst
+
+
+### Diagram | Message Queue & Delay Analysis
+<img src="assets/diagram.png" alt="RealTime Message Queue & Delay Analysis"/>
 
 ---
 
